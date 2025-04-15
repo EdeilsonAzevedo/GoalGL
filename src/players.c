@@ -2,6 +2,8 @@
 #include "draw.h"
 #include "sprites.h"
 
+extern Ball ball;
+
 Player team1[PLAYER_COUNT];
 Player team2[PLAYER_COUNT];
 
@@ -12,13 +14,30 @@ void init_players() {
         team1[i].dir = 'L'; // olhando pra direita
         team1[i].team = 1;
         team1[i].has_ball = 0;
+        team1[i].can_push_ball = 1;
+
 
         team2[i].x = player2_positions[i][0];
         team2[i].y = player2_positions[i][1];
         team2[i].dir = 'O'; // olhando pra esquerda
         team2[i].team = 2;
         team2[i].has_ball = 0;
+    team2[i].can_push_ball = 1;
+
     }
+}
+int check_player_ball_collision(int new_x, int new_y, Ball *ball) {
+    float px = new_x + 16;   // centro do jogador
+    float py = new_y + 16;
+    float bx = ball->x + 8;  // centro da bola
+    float by = ball->y + 8;
+
+    float dx = px - bx;
+    float dy = py - by;
+    float dist2 = dx*dx + dy*dy;
+    float min_dist = 28.0f; // raio jogador + raio bola
+
+    return dist2 < (min_dist * min_dist);
 }
 
 void move_player_controlled(int team, int index, char dir) {
@@ -35,25 +54,41 @@ void move_player_controlled(int team, int index, char dir) {
     int new_x = p->x + dx;
     int new_y = p->y + dy;
 
-    if (new_x >= 50 && new_x <= 850 - 32 &&
-        new_y >= 50 && new_y <= 550 - 32) {
-        p->x = new_x;
-        p->y = new_y;
-        p->dir = dir;
-    }
+    // Verifica limites do campo
+    if (new_x < 50 || new_x > 850 - 32 || new_y < 50 || new_y > 550 - 32)
+        return;
+
+    // Verifica se colidiria com a bola
+    if (check_player_ball_collision(new_x, new_y, &ball))
+        return;
+
+    // Movimento permitido
+    p->x = new_x;
+    p->y = new_y;
+    p->dir = dir;
 }
+
 
 void try_push_ball(Player *p, Ball *ball) {
     float dx = (p->x + 16) - (ball->x + 8);
     float dy = (p->y + 16) - (ball->y + 8);
     float dist2 = dx*dx + dy*dy;
+    float threshold = 30.0f;
 
-    if (dist2 < 900) { // distância < 30px
-        switch (p->dir) {
-            case 'N': ball->vy = -3; break;
-            case 'S': ball->vy =  3; break;
-            case 'L': ball->vx =  3; break;
-            case 'O': ball->vx = -3; break;
+    if (dist2 < threshold * threshold) {
+        if (p->can_push_ball) {
+            // Aplica impulso uma única vez ao entrar na zona
+            switch (p->dir) {
+                case 'N': ball->vy = -3; break;
+                case 'S': ball->vy =  3; break;
+                case 'L': ball->vx =  3; break;
+                case 'O': ball->vx = -3; break;
+            }
+            p->can_push_ball = 0; // agora precisa sair para poder chutar novamente
         }
+    } else {
+        // Jogador saiu da zona de contato, pode empurrar novamente
+        p->can_push_ball = 1;
     }
 }
+

@@ -1,5 +1,6 @@
 #include <GL/glut.h>
 #include "players.h"
+#include "sprites.h"
 
 static int selected_player1 = 0;
 static int selected_player2 = 0;

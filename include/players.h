@@ -7,6 +7,7 @@ typedef struct {
     char dir;      // 'N', 'S', 'L', 'O'
     int team;
     int has_ball;
+    int can_push_ball;
 } Player;
 
 #define PLAYER_COUNT 11
